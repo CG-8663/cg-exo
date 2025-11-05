@@ -124,6 +124,9 @@ dependencies {
     // Protocol Buffers
     implementation("com.google.protobuf:protobuf-kotlin-lite:3.24.0")
 
+    // Javax Annotation (required for generated gRPC code)
+    compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.14.0")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
