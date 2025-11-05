@@ -31,8 +31,12 @@ class GrpcServer(
 
     /**
      * Start the gRPC server
+     * Binds to 0.0.0.0 to ensure IPv4 connectivity
      */
     fun start() {
+        // Force IPv4 binding by using system property
+        System.setProperty("java.net.preferIPv4Stack", "true")
+
         server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
             .addService(NodeServiceImpl(nodeHandler, coroutineScope))
             .maxInboundMessageSize(256 * 1024 * 1024) // 256MB
@@ -40,7 +44,7 @@ class GrpcServer(
             .build()
             .start()
 
-        Timber.i("gRPC server started on port $port")
+        Timber.i("gRPC server started on 0.0.0.0:$port (IPv4)")
 
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(Thread {
