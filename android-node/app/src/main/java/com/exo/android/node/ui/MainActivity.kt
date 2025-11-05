@@ -206,24 +206,30 @@ fun NodeScreen(
             }
 
             // Contribution Metrics Card
-            contributionMetrics?.let { metrics ->
-                Card(
-                    modifier = Modifier.fillMaxWidth()
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Contribution Metrics",
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                    Text(
+                        text = "Contribution Metrics",
+                        style = MaterialTheme.typography.titleLarge
+                    )
 
-                        MetricRow("Total Requests", metrics.totalInferenceRequests.toString())
-                        MetricRow("Tokens Processed", metrics.totalTokensProcessed.toString())
-                        MetricRow("Compute Time", "${metrics.totalComputeTimeMs / 1000}s")
-                        MetricRow("Contribution Score", "%.2f".format(metrics.calculateContributionScore()))
-                        MetricRow("Failed Requests", metrics.failedRequests.toString())
+                    if (contributionMetrics != null) {
+                        MetricRow("Total Requests", contributionMetrics.totalInferenceRequests.toString())
+                        MetricRow("Tokens Processed", contributionMetrics.totalTokensProcessed.toString())
+                        MetricRow("Compute Time", "${contributionMetrics.totalComputeTimeMs / 1000}s")
+                        MetricRow("Contribution Score", "%.2f".format(contributionMetrics.calculateContributionScore()))
+                        MetricRow("Failed Requests", contributionMetrics.failedRequests.toString())
+                    } else {
+                        Text(
+                            text = "Waiting for node to start...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
