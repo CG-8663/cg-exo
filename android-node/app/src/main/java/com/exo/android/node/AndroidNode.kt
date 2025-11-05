@@ -81,8 +81,8 @@ class AndroidNode(
             grpcServer = GrpcServer(grpcPort, this@AndroidNode)
             grpcServer.start()
 
-            // Start discovery
-            discovery = UdpDiscovery(context, nodeId, grpcPort, discoveryPort)
+            // Start discovery with device capabilities
+            discovery = UdpDiscovery(context, nodeId, grpcPort, discoveryPort, deviceCapabilities)
             discovery.start()
 
             // Observe discovered peers

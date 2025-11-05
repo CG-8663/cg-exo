@@ -16,12 +16,32 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Discovery message format (JSON) to match Python nodes
+ * Must include all fields that Python exo expects
  */
 @Serializable
 private data class DiscoveryMessage(
     val type: String = "discovery",
     val node_id: String,
-    val grpc_port: Int
+    val grpc_port: Int,
+    val priority: Int = 5,  // Lower priority than Mac (Python uses 0-10, lower is better)
+    val device_capabilities: DeviceCapabilities? = null,
+    val interface_name: String? = "wlan0",
+    val interface_type: String? = "WiFi"
+)
+
+@Serializable
+private data class DeviceCapabilities(
+    val model: String,
+    val chip: String,
+    val memory: Int,  // MB
+    val flops: FlopCapabilities
+)
+
+@Serializable
+private data class FlopCapabilities(
+    val fp32: Double,  // TFLOPS
+    val fp16: Double,
+    val int8: Double
 )
 
 /**
@@ -32,7 +52,8 @@ class UdpDiscovery(
     private val context: Context,
     private val nodeId: String,
     private val grpcPort: Int,
-    private val broadcastPort: Int = DEFAULT_BROADCAST_PORT
+    private val broadcastPort: Int = DEFAULT_BROADCAST_PORT,
+    private val deviceCapabilities: com.exo.android.node.data.DeviceCapabilities? = null
 ) : Discovery {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -135,9 +156,24 @@ class UdpDiscovery(
         while (isRunning) {
             try {
                 // Send JSON format to be compatible with Python nodes
+                // Convert device capabilities if available
+                val deviceCaps = deviceCapabilities?.let {
+                    DeviceCapabilities(
+                        model = it.model,
+                        chip = it.chip,
+                        memory = it.memory,
+                        flops = FlopCapabilities(
+                            fp32 = it.flops.fp32.toDouble(),
+                            fp16 = it.flops.fp16.toDouble(),
+                            int8 = it.flops.int8.toDouble()
+                        )
+                    )
+                }
+
                 val discoveryMsg = DiscoveryMessage(
                     node_id = nodeId,
-                    grpc_port = grpcPort
+                    grpc_port = grpcPort,
+                    device_capabilities = deviceCaps
                 )
                 val jsonMessage = json.encodeToString(DiscoveryMessage.serializer(), discoveryMsg)
                 val data = jsonMessage.toByteArray()
