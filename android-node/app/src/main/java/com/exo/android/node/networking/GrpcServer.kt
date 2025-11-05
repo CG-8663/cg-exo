@@ -6,8 +6,9 @@ import com.exo.android.node.utils.ProtoConverters.toFloatArray
 import com.exo.android.node.utils.ProtoConverters.toKotlin
 import com.exo.android.node.utils.ProtoConverters.toProto
 import com.exo.android.node.utils.ProtoConverters.toProtoTensor
+import io.grpc.Grpc
+import io.grpc.InsecureServerCredentials
 import io.grpc.Server
-import io.grpc.ServerBuilder
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ class GrpcServer(
      * Start the gRPC server
      */
     fun start() {
-        server = ServerBuilder.forPort(port)
+        server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
             .addService(NodeServiceImpl(nodeHandler, coroutineScope))
             .maxInboundMessageSize(256 * 1024 * 1024) // 256MB
             .maxInboundMetadataSize(32 * 1024 * 1024)  // 32MB
