@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.exo.android.node.NodeStatus
 import com.exo.android.node.service.ExoNodeService
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -133,23 +136,25 @@ fun NodeScreen(
 
     // Observe node status
     LaunchedEffect(Unit) {
-        launch {
-            while (true) {
-                getNodeStatus()?.let { flow ->
-                    flow.collect { status ->
-                        nodeStatus = status
+        coroutineScope {
+            launch {
+                while (true) {
+                    getNodeStatus()?.let { flow ->
+                        flow.collect { status ->
+                            nodeStatus = status
+                        }
                     }
+                    delay(100)
                 }
-                delay(100)
             }
-        }
 
-        // Update contribution metrics separately
-        launch {
-            while (true) {
-                contributionMetrics = getContributionMetrics()
-                connectedPeersCount = getConnectedPeers()
-                delay(1000) // Update every second
+            // Update contribution metrics separately
+            launch {
+                while (true) {
+                    contributionMetrics = getContributionMetrics()
+                    connectedPeersCount = getConnectedPeers()
+                    delay(1000) // Update every second
+                }
             }
         }
     }
