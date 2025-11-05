@@ -133,23 +133,23 @@ fun NodeScreen(
 
     // Observe node status
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.launch {
+        launch {
             while (true) {
                 getNodeStatus()?.let { flow ->
                     flow.collect { status ->
                         nodeStatus = status
                     }
                 }
-                kotlinx.coroutines.delay(100)
+                delay(100)
             }
         }
 
         // Update contribution metrics separately
-        kotlinx.coroutines.launch {
+        launch {
             while (true) {
                 contributionMetrics = getContributionMetrics()
                 connectedPeersCount = getConnectedPeers()
-                kotlinx.coroutines.delay(1000) // Update every second
+                delay(1000) // Update every second
             }
         }
     }
