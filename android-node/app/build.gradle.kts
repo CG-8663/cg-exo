@@ -40,10 +40,17 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
@@ -57,13 +64,13 @@ protobuf {
         }
     }
     generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
+        all().configureEach {
+            builtins {
                 create("java") {
                     option("lite")
                 }
             }
-            task.plugins {
+            plugins {
                 create("grpc") {
                     option("lite")
                 }
