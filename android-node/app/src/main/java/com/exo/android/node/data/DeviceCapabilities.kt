@@ -94,7 +94,7 @@ object AndroidChipDatabase {
 
         // Samsung Exynos
         "Samsung Exynos 2400" to DeviceFlops(2.3f, 4.6f, 9.2f),
-        "Samsung Exynos 2200" to DeviceFlops(0.1f, 0.2f, 0.4f),  // Reduced to avoid getting last layer with DummyEngine
+        "Samsung Exynos 2200" to DeviceFlops(0.01f, 0.02f, 0.04f),  // Minimal FLOPS - DummyEngine can't handle last layer
 
         // Apple A-series (for reference, though not Android)
         "Apple A17 Pro" to DeviceFlops(2.15f, 4.30f, 8.60f),
