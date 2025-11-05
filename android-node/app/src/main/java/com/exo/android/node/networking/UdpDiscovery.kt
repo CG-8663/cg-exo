@@ -5,12 +5,24 @@ import android.net.wifi.WifiManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Discovery message format (JSON) to match Python nodes
+ */
+@Serializable
+private data class DiscoveryMessage(
+    val type: String = "discovery",
+    val node_id: String,
+    val grpc_port: Int
+)
 
 /**
  * UDP broadcast-based peer discovery
@@ -36,6 +48,12 @@ class UdpDiscovery(
     private var broadcastJob: Job? = null
     private var listenerJob: Job? = null
     private var cleanupJob: Job? = null
+
+    // JSON parser with lenient mode to handle various formats
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
     companion object {
         const val DEFAULT_BROADCAST_PORT = 5678
@@ -115,8 +133,13 @@ class UdpDiscovery(
     private suspend fun broadcastPresence() {
         while (isRunning) {
             try {
-                val message = "$nodeId:$grpcPort"
-                val data = message.toByteArray()
+                // Send JSON format to be compatible with Python nodes
+                val discoveryMsg = DiscoveryMessage(
+                    node_id = nodeId,
+                    grpc_port = grpcPort
+                )
+                val jsonMessage = json.encodeToString(DiscoveryMessage.serializer(), discoveryMsg)
+                val data = jsonMessage.toByteArray()
 
                 // Get broadcast addresses
                 val broadcastAddresses = getBroadcastAddresses()
@@ -135,7 +158,7 @@ class UdpDiscovery(
                     }
                 }
 
-                Timber.v("Broadcast presence: $message to ${broadcastAddresses.size} addresses")
+                Timber.v("Broadcast presence: $nodeId:$grpcPort to ${broadcastAddresses.size} addresses")
 
                 delay(BROADCAST_INTERVAL_MS)
             } catch (e: CancellationException) {
@@ -175,17 +198,35 @@ class UdpDiscovery(
 
     /**
      * Process received peer message
+     * Supports both formats:
+     * 1. Simple: "nodeId:port"
+     * 2. JSON: {"type": "discovery", "node_id": "...", "grpc_port": 12345}
      */
     private fun processPeerMessage(message: String, address: String) {
         try {
-            val parts = message.split(":")
-            if (parts.size != 2) {
-                Timber.w("Invalid peer message format: $message")
-                return
+            val (peerId, peerPort) = if (message.startsWith("{")) {
+                // JSON format from Python nodes
+                try {
+                    val discoveryMsg = json.decodeFromString<DiscoveryMessage>(message)
+                    Pair(discoveryMsg.node_id, discoveryMsg.grpc_port)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to parse JSON discovery message: $message")
+                    return
+                }
+            } else {
+                // Simple format: "nodeId:port"
+                val parts = message.split(":")
+                if (parts.size != 2) {
+                    Timber.w("Invalid peer message format: $message")
+                    return
+                }
+                val port = parts[1].toIntOrNull()
+                if (port == null) {
+                    Timber.w("Invalid port in peer message: $message")
+                    return
+                }
+                Pair(parts[0], port)
             }
-
-            val peerId = parts[0]
-            val peerPort = parts[1].toIntOrNull() ?: return
 
             // Ignore our own broadcasts
             if (peerId == nodeId) {
