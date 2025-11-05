@@ -394,6 +394,47 @@ class AndroidNode(
      */
     fun resetContributionMetrics() = contributionTracker.reset()
 
+    /**
+     * Get number of connected peers
+     */
+    fun getConnectedPeersCount(): Int = peers.size
+
+    /**
+     * Manually connect to a specific peer
+     */
+    suspend fun connectToPeer(ipAddress: String, port: Int) = withContext(Dispatchers.IO) {
+        val peerId = "manual_${ipAddress}_${port}"
+
+        if (peers.containsKey(peerId)) {
+            Timber.w("Already connected to peer: $peerId")
+            return@withContext
+        }
+
+        try {
+            Timber.i("Manually connecting to peer at $ipAddress:$port")
+            val peerHandle = GrpcPeerHandle(peerId, ipAddress, port)
+
+            // Test connection with health check
+            if (peerHandle.healthCheck()) {
+                peers[peerId] = peerHandle
+                Timber.i("Successfully connected to peer: $peerId")
+
+                // Collect topology from new peer
+                try {
+                    handleTopologyRequest(emptySet(), maxDepth = 2)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to collect topology from new peer")
+                }
+            } else {
+                peerHandle.close()
+                throw IllegalStateException("Peer health check failed")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to connect to peer at $ipAddress:$port")
+            throw e
+        }
+    }
+
     companion object {
         private fun generateNodeId(): String {
             val uuid = UUID.randomUUID().toString().take(8)

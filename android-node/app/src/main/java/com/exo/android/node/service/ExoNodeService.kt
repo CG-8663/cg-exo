@@ -181,6 +181,33 @@ class ExoNodeService : Service() {
     fun getContributionMetrics(): ContributionMetrics? = node?.getContributionMetrics()
 
     /**
+     * Get connected peers count
+     */
+    fun getConnectedPeersCount(): Int = node?.getConnectedPeersCount() ?: 0
+
+    /**
+     * Connect to a specific peer manually
+     */
+    fun connectToPeer(ipAddress: String, port: Int) {
+        scope.launch {
+            try {
+                Timber.i("Connecting to peer at $ipAddress:$port")
+                node?.connectToPeer(ipAddress, port)
+                updateNotification(
+                    title = "EXO Node Running",
+                    text = "Connected to peer at $ipAddress:$port"
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to connect to peer at $ipAddress:$port")
+                updateNotification(
+                    title = "EXO Node Running",
+                    text = "Failed to connect to peer: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
      * Create notification channel (Android 8.0+)
      */
     private fun createNotificationChannel() {

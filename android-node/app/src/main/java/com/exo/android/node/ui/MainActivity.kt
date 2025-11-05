@@ -81,7 +81,9 @@ class MainActivity : ComponentActivity() {
                         onStartNode = { ExoNodeService.start(this) },
                         onStopNode = { ExoNodeService.stop(this) },
                         getNodeStatus = { nodeService?.getNodeStatus() },
-                        getContributionMetrics = { nodeService?.getContributionMetrics() }
+                        getContributionMetrics = { nodeService?.getContributionMetrics() },
+                        getConnectedPeers = { nodeService?.getConnectedPeersCount() ?: 0 },
+                        onConnectToPeer = { ip, port -> nodeService?.connectToPeer(ip, port) }
                     )
                 }
             }
@@ -119,21 +121,36 @@ fun NodeScreen(
     onStartNode: () -> Unit,
     onStopNode: () -> Unit,
     getNodeStatus: () -> kotlinx.coroutines.flow.StateFlow<NodeStatus>?,
-    getContributionMetrics: () -> com.exo.android.node.data.ContributionMetrics?
+    getContributionMetrics: () -> com.exo.android.node.data.ContributionMetrics?,
+    getConnectedPeers: () -> Int = { 0 },
+    onConnectToPeer: (String, Int) -> Unit = { _, _ -> }
 ) {
     var nodeStatus by remember { mutableStateOf<NodeStatus>(NodeStatus.Stopped) }
     var contributionMetrics by remember { mutableStateOf<com.exo.android.node.data.ContributionMetrics?>(null) }
+    var peerIpAddress by remember { mutableStateOf("192.168.68.51") }
+    var peerPort by remember { mutableStateOf("50051") }
+    var connectedPeersCount by remember { mutableStateOf(0) }
 
     // Observe node status
     LaunchedEffect(Unit) {
-        while (true) {
-            getNodeStatus()?.let { flow ->
-                flow.collect { status ->
-                    nodeStatus = status
+        kotlinx.coroutines.launch {
+            while (true) {
+                getNodeStatus()?.let { flow ->
+                    flow.collect { status ->
+                        nodeStatus = status
+                    }
                 }
+                kotlinx.coroutines.delay(100)
             }
-            kotlinx.coroutines.delay(1000)
-            contributionMetrics = getContributionMetrics()
+        }
+
+        // Update contribution metrics separately
+        kotlinx.coroutines.launch {
+            while (true) {
+                contributionMetrics = getContributionMetrics()
+                connectedPeersCount = getConnectedPeers()
+                kotlinx.coroutines.delay(1000) // Update every second
+            }
         }
     }
 
@@ -202,6 +219,55 @@ fun NodeScreen(
                         MetricRow("Compute Time", "${metrics.totalComputeTimeMs / 1000}s")
                         MetricRow("Contribution Score", "%.2f".format(metrics.calculateContributionScore()))
                         MetricRow("Failed Requests", metrics.failedRequests.toString())
+                    }
+                }
+            }
+
+            // Cluster Connection Card
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Cluster Connection",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    MetricRow("Connected Peers", connectedPeersCount.toString())
+
+                    Text(
+                        text = "Connect to Peer",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    OutlinedTextField(
+                        value = peerIpAddress,
+                        onValueChange = { peerIpAddress = it },
+                        label = { Text("Peer IP Address") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = peerPort,
+                        onValueChange = { peerPort = it },
+                        label = { Text("Peer Port") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Button(
+                        onClick = {
+                            val port = peerPort.toIntOrNull() ?: 50051
+                            onConnectToPeer(peerIpAddress, port)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = nodeStatus == NodeStatus.Running && peerIpAddress.isNotBlank()
+                    ) {
+                        Text("Connect to Peer")
                     }
                 }
             }
