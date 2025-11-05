@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package node_service;
 
+option java_outer_classname = "NodeServiceProto";
+
 service NodeService {
   rpc SendPrompt (PromptRequest) returns (Tensor) {}
   rpc SendTensor (TensorRequest) returns (Tensor) {}
