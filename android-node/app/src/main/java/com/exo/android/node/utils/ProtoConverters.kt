@@ -134,7 +134,7 @@ object ProtoConverters {
     }
 
     fun NodeServiceProto.InferenceState.toKotlin(): InferenceState? {
-        if (!hasTensorDataMap() && !hasTensorListDataMap() && otherDataJson.isEmpty()) {
+        if (tensorDataMap.isEmpty() && tensorListDataMap.isEmpty() && otherDataJson.isEmpty()) {
             return null
         }
 

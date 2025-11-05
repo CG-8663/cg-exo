@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
  * Mirrors Python GrpcPeerHandle from exo/networking/grpc/grpc_peer_handle.py
  */
 class GrpcPeerHandle(
-    val peerId: String,
+    override val peerId: String,
     private val address: String,
     private val port: Int
 ) : PeerHandle {
