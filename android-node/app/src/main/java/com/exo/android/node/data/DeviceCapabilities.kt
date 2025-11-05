@@ -186,15 +186,23 @@ object DeviceCapabilitiesDetector {
      * Map hardware string to user-friendly chip name
      */
     private fun mapHardwareToChipName(hardware: String): String {
+        // Check Build.MODEL for device-specific chips
+        val model = Build.MODEL.uppercase()
+
+        // Galaxy S22 Ultra variants
+        if (model.contains("S908")) {
+            return "Qualcomm Snapdragon 8 Gen 1"  // S22 Ultra Snapdragon variant
+        }
+
         return when {
-            hardware.contains("Qualcomm", ignoreCase = true) -> {
+            hardware.contains("Qualcomm", ignoreCase = true) || hardware.contains("qcom", ignoreCase = true) -> {
                 // Try to extract Snapdragon model
                 when {
-                    hardware.contains("8gen3", ignoreCase = true) ->
+                    hardware.contains("8gen3", ignoreCase = true) || hardware.contains("kalama", ignoreCase = true) ->
                         "Qualcomm Snapdragon 8 Gen 3"
-                    hardware.contains("8gen2", ignoreCase = true) ->
+                    hardware.contains("8gen2", ignoreCase = true) || hardware.contains("taro", ignoreCase = true) ->
                         "Qualcomm Snapdragon 8 Gen 2"
-                    hardware.contains("8gen1", ignoreCase = true) ->
+                    hardware.contains("8gen1", ignoreCase = true) || hardware.contains("lahaina", ignoreCase = true) ->
                         "Qualcomm Snapdragon 8 Gen 1"
                     hardware.contains("888") ->
                         "Qualcomm Snapdragon 888"
@@ -202,7 +210,7 @@ object DeviceCapabilitiesDetector {
                         "Qualcomm Snapdragon 870"
                     hardware.contains("865") ->
                         "Qualcomm Snapdragon 865"
-                    else -> hardware
+                    else -> "Qualcomm Snapdragon 8 Gen 1"  // Default for unknown qcom chips
                 }
             }
             hardware.contains("MediaTek", ignoreCase = true) -> {
