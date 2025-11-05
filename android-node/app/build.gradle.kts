@@ -52,6 +52,22 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // Add generated proto sources to Android source sets
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("build/generated/source/proto/main/java")
+            java.srcDirs("build/generated/source/proto/main/grpc")
+        }
+        getByName("debug") {
+            java.srcDirs("build/generated/source/proto/debug/java")
+            java.srcDirs("build/generated/source/proto/debug/grpc")
+        }
+        getByName("release") {
+            java.srcDirs("build/generated/source/proto/release/java")
+            java.srcDirs("build/generated/source/proto/release/grpc")
+        }
+    }
 }
 
 protobuf {
@@ -130,4 +146,14 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Ensure Kotlin compilation depends on proto generation
+afterEvaluate {
+    tasks.named("compileDebugKotlin") {
+        dependsOn("generateDebugProto")
+    }
+    tasks.named("compileReleaseKotlin") {
+        dependsOn("generateReleaseProto")
+    }
 }
