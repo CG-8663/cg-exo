@@ -2,3 +2,6 @@
 <resources>
     <string name="app_name">EXO Node</string>
 </resources>
+
+<!-- Launcher icon colors -->
+<color name="ic_launcher_background">#1A237E</color>
