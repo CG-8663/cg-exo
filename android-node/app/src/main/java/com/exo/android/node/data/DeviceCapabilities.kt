@@ -177,12 +177,15 @@ object DeviceCapabilitiesDetector {
         val actualMemory = getTotalMemoryMB(context)
         val flops = AndroidChipDatabase.getFlops(chipName)
 
-        // WORKAROUND: Ring partitioning uses memory, not FLOPS
-        // With DummyInferenceEngine that can't emit tokens, we need to avoid
-        // getting the last layer. Report minimal memory so Mac (with MLX)
-        // handles all layers including the critical last layer.
+        // WORKAROUND: Ring partitioning sorts nodes by memory (highest first)
+        // In a 2-node ring:
+        //   - First node (highest memory) gets early layers (0 to N)
+        //   - Second node (lowest memory) gets remaining layers (N to 15, including LAST layer)
+        // With DummyInferenceEngine that can't emit tokens, we MUST avoid the last layer.
+        // Solution: Report MORE memory than Mac so Android gets sorted first (early layers)
+        // and Mac gets sorted second (last layers where it can generate tokens with MLX).
         val reportedMemory = if (chipName.contains("Exynos 2200")) {
-            100  // Minimal memory to avoid layer assignment
+            50000  // Higher than Mac's ~32GB to get early layers, not last layer
         } else {
             actualMemory
         }
