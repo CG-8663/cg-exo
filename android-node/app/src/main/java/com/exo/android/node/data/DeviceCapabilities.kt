@@ -174,13 +174,23 @@ object DeviceCapabilitiesDetector {
     suspend fun detect(context: Context): DeviceCapabilities = withContext(Dispatchers.IO) {
         val model = Build.MODEL
         val chipName = getChipName()
-        val memory = getTotalMemoryMB(context)
+        val actualMemory = getTotalMemoryMB(context)
         val flops = AndroidChipDatabase.getFlops(chipName)
+
+        // WORKAROUND: Ring partitioning uses memory, not FLOPS
+        // With DummyInferenceEngine that can't emit tokens, we need to avoid
+        // getting the last layer. Report minimal memory so Mac (with MLX)
+        // handles all layers including the critical last layer.
+        val reportedMemory = if (chipName.contains("Exynos 2200")) {
+            100  // Minimal memory to avoid layer assignment
+        } else {
+            actualMemory
+        }
 
         DeviceCapabilities(
             model = model,
             chip = chipName,
-            memory = memory,
+            memory = reportedMemory,
             flops = flops
         )
     }
