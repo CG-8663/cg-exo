@@ -94,7 +94,7 @@ object AndroidChipDatabase {
 
         // Samsung Exynos
         "Samsung Exynos 2400" to DeviceFlops(2.3f, 4.6f, 9.2f),
-        "Samsung Exynos 2200" to DeviceFlops(1.0f, 2.0f, 4.0f),  // Based on Xclipse 920 GPU
+        "Samsung Exynos 2200" to DeviceFlops(0.1f, 0.2f, 0.4f),  // Reduced to avoid getting last layer with DummyEngine
 
         // Apple A-series (for reference, though not Android)
         "Apple A17 Pro" to DeviceFlops(2.15f, 4.30f, 8.60f),
