@@ -94,13 +94,59 @@ object AndroidChipDatabase {
 
         // Samsung Exynos
         "Samsung Exynos 2400" to DeviceFlops(2.3f, 4.6f, 9.2f),
-        "Samsung Exynos 2200" to DeviceFlops(2.0f, 4.0f, 8.0f),
+        "Samsung Exynos 2200" to DeviceFlops(1.0f, 2.0f, 4.0f),  // Based on Xclipse 920 GPU
 
         // Apple A-series (for reference, though not Android)
         "Apple A17 Pro" to DeviceFlops(2.15f, 4.30f, 8.60f),
         "Apple A16 Bionic" to DeviceFlops(1.79f, 3.58f, 7.16f),
         "Apple A15 Bionic" to DeviceFlops(1.37f, 2.74f, 5.48f)
     )
+
+    /**
+     * Database mapping specific phone models to their chipsets
+     * More reliable than hardware string parsing
+     */
+    private val PHONE_MODEL_TO_CHIP = mapOf(
+        // Samsung Galaxy S22 Ultra variants
+        "SM-S908U" to "Qualcomm Snapdragon 8 Gen 1",  // US
+        "SM-S908U1" to "Qualcomm Snapdragon 8 Gen 1", // US unlocked
+        "SM-S908N" to "Qualcomm Snapdragon 8 Gen 1",  // Korea
+        "SM-S908W" to "Qualcomm Snapdragon 8 Gen 1",  // Canada
+        "SM-S908E" to "Samsung Exynos 2200",          // Europe/International
+        "SM-S908B" to "Samsung Exynos 2200",          // UK/International
+
+        // Samsung Galaxy S23 Ultra (all Snapdragon 8 Gen 2)
+        "SM-S918U" to "Qualcomm Snapdragon 8 Gen 2",
+        "SM-S918U1" to "Qualcomm Snapdragon 8 Gen 2",
+        "SM-S918B" to "Qualcomm Snapdragon 8 Gen 2",
+        "SM-S918N" to "Qualcomm Snapdragon 8 Gen 2",
+
+        // Samsung Galaxy S24 Ultra (all Snapdragon 8 Gen 3)
+        "SM-S928U" to "Qualcomm Snapdragon 8 Gen 3",
+        "SM-S928U1" to "Qualcomm Snapdragon 8 Gen 3",
+        "SM-S928B" to "Qualcomm Snapdragon 8 Gen 3",
+        "SM-S928N" to "Qualcomm Snapdragon 8 Gen 3",
+
+        // Google Pixel models
+        "Pixel 8 Pro" to "Google Tensor G3",
+        "Pixel 8" to "Google Tensor G3",
+        "Pixel 7 Pro" to "Google Tensor G2",
+        "Pixel 7" to "Google Tensor G2",
+        "Pixel 6 Pro" to "Google Tensor",
+        "Pixel 6" to "Google Tensor"
+    )
+
+    fun getChipForModel(model: String): String? {
+        // Exact match
+        PHONE_MODEL_TO_CHIP[model]?.let { return it }
+
+        // Partial match (for variants)
+        PHONE_MODEL_TO_CHIP.entries.find {
+            model.contains(it.key, ignoreCase = true)
+        }?.let { return it.value }
+
+        return null
+    }
 
     fun getFlops(chipName: String): DeviceFlops {
         // Try exact match first
@@ -141,8 +187,13 @@ object DeviceCapabilitiesDetector {
 
     /**
      * Get chip/SoC name from system properties
+     * First checks phone model database, then falls back to hardware detection
      */
     private fun getChipName(): String {
+        // First, try phone model database (most reliable)
+        AndroidChipDatabase.getChipForModel(Build.MODEL)?.let { return it }
+
+        // Fall back to hardware string parsing
         return try {
             // Try to read from /proc/cpuinfo
             val cpuInfo = readCpuInfo()
@@ -184,16 +235,10 @@ object DeviceCapabilitiesDetector {
 
     /**
      * Map hardware string to user-friendly chip name
+     * Note: Phone model database is checked first in getChipName()
+     * This is only for fallback when model isn't in database
      */
     private fun mapHardwareToChipName(hardware: String): String {
-        // Check Build.MODEL for device-specific chips
-        val model = Build.MODEL.uppercase()
-
-        // Galaxy S22 Ultra variants
-        if (model.contains("S908")) {
-            return "Qualcomm Snapdragon 8 Gen 1"  // S22 Ultra Snapdragon variant
-        }
-
         return when {
             hardware.contains("Qualcomm", ignoreCase = true) || hardware.contains("qcom", ignoreCase = true) -> {
                 // Try to extract Snapdragon model
