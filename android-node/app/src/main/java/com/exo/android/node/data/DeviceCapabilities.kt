@@ -177,15 +177,17 @@ object DeviceCapabilitiesDetector {
         val actualMemory = getTotalMemoryMB(context)
         val flops = AndroidChipDatabase.getFlops(chipName)
 
-        // WORKAROUND: Ring partitioning sorts nodes by memory (highest first)
-        // In a 2-node ring:
-        //   - First node (highest memory) gets early layers (0 to N)
-        //   - Second node (lowest memory) gets remaining layers (N to 15, including LAST layer)
-        // With DummyInferenceEngine that can't emit tokens, we MUST avoid the last layer.
-        // Solution: Report MORE memory than Mac so Android gets sorted first (early layers)
-        // and Mac gets sorted second (last layers where it can generate tokens with MLX).
+        // CRITICAL: DummyInferenceEngine cannot produce valid intermediate tensor representations
+        // for real inference engines to continue from. Android's dummy tensors have wrong shapes
+        // and cause errors like "[rms_norm] weight must have the same size as the last dimension".
+        //
+        // Solution: Report minimal memory (1 MB) so Android gets 0 or near-0 layer allocation.
+        // Mac will handle all/most layers with real MLX inference engine.
+        //
+        // TODO: When real inference engine is implemented on Android (TFLite/ONNX/MLX),
+        // remove this workaround and report actual memory for proper distributed inference.
         val reportedMemory = if (chipName.contains("Exynos 2200")) {
-            50000  // Higher than Mac's ~32GB to get early layers, not last layer
+            1  // 1 MB - minimal allocation to avoid processing with DummyEngine
         } else {
             actualMemory
         }
