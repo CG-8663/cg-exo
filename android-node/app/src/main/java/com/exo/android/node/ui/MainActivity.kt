@@ -218,12 +218,13 @@ fun NodeScreen(
                         style = MaterialTheme.typography.titleLarge
                     )
 
-                    if (contributionMetrics != null) {
-                        MetricRow("Total Requests", contributionMetrics.totalInferenceRequests.toString())
-                        MetricRow("Tokens Processed", contributionMetrics.totalTokensProcessed.toString())
-                        MetricRow("Compute Time", "${contributionMetrics.totalComputeTimeMs / 1000}s")
-                        MetricRow("Contribution Score", "%.2f".format(contributionMetrics.calculateContributionScore()))
-                        MetricRow("Failed Requests", contributionMetrics.failedRequests.toString())
+                    val metrics = contributionMetrics
+                    if (metrics != null) {
+                        MetricRow("Total Requests", metrics.totalInferenceRequests.toString())
+                        MetricRow("Tokens Processed", metrics.totalTokensProcessed.toString())
+                        MetricRow("Compute Time", "${metrics.totalComputeTimeMs / 1000}s")
+                        MetricRow("Contribution Score", "%.2f".format(metrics.calculateContributionScore()))
+                        MetricRow("Failed Requests", metrics.failedRequests.toString())
                     } else {
                         Text(
                             text = "Waiting for node to start...",
