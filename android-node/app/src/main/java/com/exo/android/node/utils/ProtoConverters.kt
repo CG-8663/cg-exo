@@ -52,11 +52,23 @@ object ProtoConverters {
 
     /**
      * Convert Proto Tensor to FloatArray
+     * Python uses little-endian byte order by default
      */
     fun NodeServiceProto.Tensor.toFloatArray(): FloatArray {
-        val buffer = ByteBuffer.wrap(tensorData.toByteArray()).order(ByteOrder.nativeOrder())
-        val size = shapeList.fold(1) { acc, dim -> acc * dim }
-        return FloatArray(size) { buffer.float }
+        val bytes = tensorData.toByteArray()
+        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)  // Force little-endian
+
+        // Calculate expected size from shape, but use actual buffer size if mismatch
+        val expectedSize = if (shapeList.isEmpty()) {
+            bytes.size / 4  // Assume float32 if no shape
+        } else {
+            shapeList.fold(1) { acc, dim -> acc * dim }
+        }
+
+        val actualSize = bytes.size / 4  // Each float is 4 bytes
+        val size = minOf(expectedSize, actualSize)  // Use smaller to avoid buffer underflow
+
+        return FloatArray(size) { buffer.getFloat() }
     }
 
     /**
