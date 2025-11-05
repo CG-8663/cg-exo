@@ -31,12 +31,9 @@ class GrpcServer(
 
     /**
      * Start the gRPC server
-     * Binds to 0.0.0.0 to ensure IPv4 connectivity
+     * IPv4 stack is configured globally in ExoApplication
      */
     fun start() {
-        // Force IPv4 binding by using system property
-        System.setProperty("java.net.preferIPv4Stack", "true")
-
         server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
             .addService(NodeServiceImpl(nodeHandler, coroutineScope))
             .maxInboundMessageSize(256 * 1024 * 1024) // 256MB
@@ -44,7 +41,7 @@ class GrpcServer(
             .build()
             .start()
 
-        Timber.i("gRPC server started on 0.0.0.0:$port (IPv4)")
+        Timber.i("gRPC server started on port $port (IPv4 globally configured)")
 
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(Thread {

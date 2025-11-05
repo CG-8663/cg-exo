@@ -53,6 +53,7 @@ class UdpDiscovery(
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        encodeDefaults = true  // Ensure default values are included in JSON
     }
 
     companion object {
@@ -140,6 +141,8 @@ class UdpDiscovery(
                 )
                 val jsonMessage = json.encodeToString(DiscoveryMessage.serializer(), discoveryMsg)
                 val data = jsonMessage.toByteArray()
+
+                Timber.d("Broadcasting JSON: $jsonMessage")
 
                 // Get broadcast addresses
                 val broadcastAddresses = getBroadcastAddresses()
